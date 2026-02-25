@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="bg-grid"></div>
+  <div class="nebula nebula-a"></div>
+  <div class="nebula nebula-b"></div>
+
   <div id="bootScreen" class="boot-screen">
     <h1>doomsageOSGod</h1>
     <p>DoomsageOS by kunal dewangan</p>
@@ -17,6 +21,7 @@
     <header class="topbar glass">
       <div class="brand">⚡ doomsageOSGod — <span>DoomsageOS by kunal dewangan</span></div>
       <div class="status">
+        <span id="netStatus">Offline</span>
         <span id="liveClock">00:00:00</span>
         <span id="liveDate">---</span>
       </div>
@@ -38,6 +43,7 @@
         </div>
       </div>
       <div class="window-content"></div>
+      <div class="resize-handle" aria-hidden="true"></div>
     </section>
   </template>
 
