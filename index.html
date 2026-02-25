@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>doomsageOSGod — DoomsageOS by kunal dewangan</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="nebula nebula-a"></div>
+  <div class="nebula nebula-b"></div>
+
+  <div id="bootScreen" class="boot-screen">
+    <h1>doomsageOSGod</h1>
+    <p>DoomsageOS by kunal dewangan</p>
+    <div class="loader"></div>
+  </div>
+
+  <div id="os" class="os hidden">
+    <header class="topbar glass">
+      <div class="brand">⚡ doomsageOSGod — <span>DoomsageOS by kunal dewangan</span></div>
+      <div class="status">
+        <span id="netStatus">Offline</span>
+        <span id="liveClock">00:00:00</span>
+        <span id="liveDate">---</span>
+      </div>
+    </header>
+
+    <main class="desktop" id="desktop"></main>
+
+    <nav class="dock glass" id="dock"></nav>
+  </div>
+
+  <template id="windowTemplate">
+    <section class="window" role="dialog" aria-modal="false">
+      <div class="window-header">
+        <span class="window-title">App</span>
+        <div class="window-controls">
+          <button class="minimize" title="Minimize">—</button>
+          <button class="maximize" title="Maximize">▢</button>
+          <button class="close" title="Close">✕</button>
+        </div>
+      </div>
+      <div class="window-content"></div>
+      <div class="resize-handle" aria-hidden="true"></div>
+    </section>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
