@@ -468,13 +468,88 @@ function cameraApp(el) {
 }
 
 function browserApp(el) {
-  el.innerHTML = '<h3>Browser Launcher</h3><input id="u" value="https://example.com" /><button class="action" id="openU">Open URL</button><p id="uStatus"></p>';
-  el.querySelector('#openU').onclick = () => {
-    let u = el.querySelector('#u').value.trim();
-    if (!u.startsWith('http')) u = `https://${u}`;
-    window.open(u, '_blank', 'noopener');
-    el.querySelector('#uStatus').textContent = `Opened: ${u}`;
+  el.innerHTML = `
+    <h3>Mini Browser</h3>
+    <div class="mini-browser">
+      <div class="mini-browser-toolbar">
+        <button class="action" id="bBack">←</button>
+        <button class="action" id="bForward">→</button>
+        <button class="action" id="bReload">⟳</button>
+        <input id="u" value="https://example.com" />
+        <button class="action" id="openU">Go</button>
+      </div>
+      <p id="uStatus" class="mini-browser-status"></p>
+      <iframe id="miniFrame" title="Mini Browser" referrerpolicy="no-referrer" loading="eager"></iframe>
+    </div>
+  `;
+
+  const input = el.querySelector('#u');
+  const status = el.querySelector('#uStatus');
+  const frame = el.querySelector('#miniFrame');
+  let history = [];
+  let idx = -1;
+
+  const normalizeUrl = (raw) => {
+    let u = String(raw || '').trim();
+    if (!u) return '';
+    if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    return u;
   };
+
+  const renderNavState = () => {
+    el.querySelector('#bBack').disabled = idx <= 0;
+    el.querySelector('#bForward').disabled = idx >= history.length - 1;
+  };
+
+  const showBlockedHint = (url) => {
+    status.textContent = `If this page does not load, the site may block iframe embedding (X-Frame-Options/CSP): ${url}`;
+  };
+
+  const openUrl = (rawUrl, push = true) => {
+    const u = normalizeUrl(rawUrl);
+    if (!u) {
+      status.textContent = 'Please enter a valid URL.';
+      return;
+    }
+    if (push) {
+      history = history.slice(0, idx + 1);
+      history.push(u);
+      idx = history.length - 1;
+    }
+    frame.src = u;
+    input.value = u;
+    status.textContent = `Loading: ${u}`;
+    renderNavState();
+    setTimeout(() => showBlockedHint(u), 2500);
+  };
+
+  el.querySelector('#openU').onclick = () => openUrl(input.value, true);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') openUrl(input.value, true);
+  });
+
+  el.querySelector('#bBack').onclick = () => {
+    if (idx <= 0) return;
+    idx -= 1;
+    openUrl(history[idx], false);
+  };
+
+  el.querySelector('#bForward').onclick = () => {
+    if (idx >= history.length - 1) return;
+    idx += 1;
+    openUrl(history[idx], false);
+  };
+
+  el.querySelector('#bReload').onclick = () => {
+    if (idx < 0) return;
+    openUrl(history[idx], false);
+  };
+
+  frame.addEventListener('load', () => {
+    status.textContent = `Showing: ${input.value}`;
+  });
+
+  openUrl(input.value, true);
 }
 
 function weatherApp(el) {
@@ -586,6 +661,25 @@ const messengerRuntime = {
   currentUser: null,
 };
 
+function isFirestoreSetupError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  const code = String(err?.code || '').toLowerCase();
+  return (
+    code.includes('permission-denied') ||
+    code.includes('failed-precondition') ||
+    msg.includes('cloud firestore api has not been used') ||
+    msg.includes('firestore has not been enabled') ||
+    msg.includes('database') && msg.includes('not found')
+  );
+}
+
+function setMessengerStatus(statusEl, message, details = '') {
+  statusEl.innerHTML = `
+    <strong>${message}</strong>
+    ${details ? `<p>${details}</p>` : ''}
+  `;
+}
+
 async function initMessengerBackend() {
   if (messengerRuntime.initialized) return messengerRuntime.ready;
   messengerRuntime.initialized = true;
@@ -692,11 +786,24 @@ function messengerApp(el, win) {
       authWrap.querySelector('#msLogout').onclick = () => messengerRuntime.auth.signOut();
 
       body.classList.remove('hidden');
-      await ensureUserProfile(user);
-      await renderSelfIdentity(el, user);
-      watchIncomingRequests(el, user, unsub, rerenderAll);
-      watchFriends(el, user, unsub, rerenderAll);
-      rerenderAll();
+      try {
+        await ensureUserProfile(user);
+        await renderSelfIdentity(el, user);
+        watchIncomingRequests(el, user, unsub, rerenderAll);
+        watchFriends(el, user, unsub, rerenderAll);
+        rerenderAll();
+      } catch (err) {
+        console.error('Messenger profile init error:', err);
+        if (isFirestoreSetupError(err)) {
+          setMessengerStatus(
+            status,
+            'Firestore is not ready yet for Messenger.',
+            'Open Firebase → Firestore Database → Create database, then refresh this page. Also keep Google Auth enabled and add your domain in Authorized domains.'
+          );
+        } else {
+          setMessengerStatus(status, 'Messenger failed to load user profile.', err.message || 'Unknown error');
+        }
+      }
     }));
   }).catch((err) => {
     status.textContent = `Messenger init failed: ${err.message}`;
@@ -714,7 +821,15 @@ async function ensureUserProfile(user) {
   const db = messengerRuntime.db;
   const userRef = db.collection('users').doc(user.uid);
   const snap = await userRef.get();
-  if (snap.exists) return snap.data();
+  if (snap.exists) {
+    const profile = snap.data() || {};
+    if (!profile.doomsageId) {
+      const uniqueId = `doom-${user.uid.slice(0, 8)}`;
+      await userRef.set({ doomsageId: uniqueId }, { merge: true });
+      return { ...profile, doomsageId: uniqueId };
+    }
+    return profile;
+  }
 
   const uniqueId = `doom-${user.uid.slice(0, 8)}`;
   const profile = {
@@ -730,9 +845,15 @@ async function ensureUserProfile(user) {
 
 async function renderSelfIdentity(el, user) {
   const snap = await messengerRuntime.db.collection('users').doc(user.uid).get();
-  const profile = snap.data();
+  const profile = snap.data() || {};
+  const uniqueId = profile.doomsageId || `doom-${user.uid.slice(0, 8)}`;
+
+  if (!profile.doomsageId) {
+    await messengerRuntime.db.collection('users').doc(user.uid).set({ doomsageId: uniqueId }, { merge: true });
+  }
+
   el.querySelector('#myGoogle').textContent = `Google: ${user.email}`;
-  el.querySelector('#myUniqueId').textContent = profile?.doomsageId || '-';
+  el.querySelector('#myUniqueId').textContent = uniqueId;
 }
 
 function watchIncomingRequests(el, user, unsub, rerenderAll) {

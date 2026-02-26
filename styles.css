@@ -312,6 +312,44 @@ input, textarea, select {
 
 audio { width: 100%; margin-top: .6rem; }
 
+
+
+.mini-browser {
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 14px;
+  padding: .7rem;
+  background: rgba(6,10,20,.5);
+}
+
+.mini-browser-toolbar {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr auto;
+  gap: .45rem;
+  align-items: center;
+}
+
+.mini-browser-toolbar input {
+  margin: 0;
+}
+
+.mini-browser-toolbar .action {
+  min-width: 44px;
+}
+
+.mini-browser-status {
+  margin: .55rem 0;
+  color: #b8cae4;
+  font-size: .9rem;
+}
+
+#miniFrame {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 12px;
+  background: rgba(0,0,0,.45);
+}
+
 @media (max-width: 960px) {
   .os { grid-template-columns: 1fr; }
   .launcher { max-height: 34vh; }
