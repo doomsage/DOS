@@ -354,3 +354,17 @@ audio { width: 100%; margin-top: .6rem; }
   .os { grid-template-columns: 1fr; }
   .launcher { max-height: 34vh; }
 }
+/* Boot Screen Logo */
+.boot-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 20px;
+    animation: logoFade 1.2s ease-in-out forwards;
+    opacity: 0.9;
+}
+
+@keyframes logoFade {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
